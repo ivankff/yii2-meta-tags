@@ -46,7 +46,7 @@ class MetaTags extends Widget
      */
     private function _getBehavior()
     {
-        foreach ($this->model->behaviors() as $b)
+        foreach ($this->model->getBehaviors() as $b)
             if ($b instanceof MetaTagBehavior)
                 return $b;
 

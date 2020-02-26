@@ -1,12 +1,6 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: artemshmanovsky
- * Date: 12.03.15
- * Time: 2:11
- */
 
-namespace ivankff\models;
+namespace ivankff\metaTags\models;
 
 use Yii;
 use ivankff\metaTags\MetaTags;

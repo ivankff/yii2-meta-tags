@@ -28,7 +28,7 @@ class MetaTagsComponent extends \yii\base\Component
         if ($model instanceof ActiveRecord) {
             $behavior = null;
 
-            foreach ($model->behaviors() as $b)
+            foreach ($model->getBehaviors() as $b)
                 if ($b instanceof MetaTagBehavior)
                     $behavior = $b;
 

@@ -8,7 +8,7 @@ use yii\base\Event;
 use yii\base\ModelEvent;
 use yii\db\ActiveRecord;
 
-use ivankff\models\MetaTag;
+use ivankff\metaTags\models\MetaTag;
 use yii\db\AfterSaveEvent;
 use yii\web\Request;
 
