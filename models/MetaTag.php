@@ -6,14 +6,29 @@
  * Time: 2:11
  */
 
-namespace v0lume\yii2\metaTags\models;
+namespace ivankff\models;
 
 use Yii;
-use yii\behaviors\TimestampBehavior;
-use v0lume\yii2\metaTags\MetaTags;
+use ivankff\metaTags\MetaTags;
 
+/**
+ * @property int $model_id
+ * @property string $model
+ * @property string $title
+ * @property string $description
+ * @property string $keywords
+ */
 class MetaTag extends \yii\db\ActiveRecord
 {
+
+    /**
+     * @return bool
+     */
+    public function isEmpty()
+    {
+        return !$this->title && !$this->description && !$this->keywords;
+    }
+
     /**
      * @return string the associated database table name
      */
@@ -23,21 +38,18 @@ class MetaTag extends \yii\db\ActiveRecord
     }
 
     /**
-     * @return array validation rules for model attributes.
+     * {@inheritDoc}
      */
     public function rules()
     {
         return [
             [['model', 'model_id'], 'required'],
-            [['model_id', 'time_update'], 'integer'],
-            ['description', 'string'],
-            [['model', 'title', 'keywords'], 'string', 'max' => 255],
-            [['model', 'model_id', 'title', 'keywords', 'description'], 'safe'],
+            [['description', 'title', 'keywords'], 'string', 'max' => 255],
         ];
     }
 
     /**
-     * @return array customized attribute labels (name=>label)
+     * {@inheritDoc}
      */
     public function attributeLabels()
     {
@@ -48,15 +60,27 @@ class MetaTag extends \yii\db\ActiveRecord
         ];
     }
 
-
+    /**
+     * {@inheritDoc}
+     */
     public function behaviors()
     {
         return [
             [
-                'class' => TimestampBehavior::className(),
+                'class' => 'yii\behaviors\TimestampBehavior',
                 'createdAtAttribute' => false,
                 'updatedAtAttribute' => 'time_update',
             ],
         ];
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function formName()
+    {
+        $suffix = preg_replace('/[^a-zA-Z0-9_]+/u', '', $this->model . $this->model_id);
+        return parent::formName() . $suffix;
+    }
+
 }

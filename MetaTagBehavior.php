@@ -1,106 +1,184 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: artemshmanovsky
- * Date: 12.03.15
- * Time: 1:52
- */
 
-namespace v0lume\yii2\metaTags;
+namespace ivankff\metaTags;
 
 use Yii;
 use yii\base\Behavior;
+use yii\base\Event;
+use yii\base\ModelEvent;
 use yii\db\ActiveRecord;
 
-use v0lume\yii2\metaTags\models\MetaTag;
+use ivankff\models\MetaTag;
+use yii\db\AfterSaveEvent;
 use yii\web\Request;
 
+/**
+ * ```php
+ * public function behaviors()
+ * {
+ *     return [
+ *         'MetaTag' => [
+ *             'class' => 'ivankff\metaTags\MetaTagBehavior',
+ *             'primaryKey' => function($owner, $behavior) {
+ *                  return md5(implode($owner->primaryKey, '_'));
+ *              },
+ *             'modelName' => get_class($this),
+ *         ],
+ *     ];
+ * }
+ * ```
+ *
+ * @property ActiveRecord $owner
+ */
 class MetaTagBehavior extends Behavior
 {
-    private $_model = null;
 
+    /**
+     * @var callable|null an anonymous function returning the value. The anonymous function signature should be:
+     * `function($owner, $behavior)`
+     * it is useful when primary key is array
+     * if `null` then `$this->owner->primaryKey` will be used
+     */
+    public $primaryKey;
+    /**
+     * @var string|null model name to save in `model` attribute
+     * `(new \ReflectionClass($this->owner))->getShortName()` is used by default
+     */
+    public $modelName;
 
+    /** @var MetaTag */
+    private $_model;
+    /** @var bool */
+    private $_needToSave = false;
+
+    /**
+     * {@inheritDoc}
+     */
     public function events()
     {
         return [
+            ActiveRecord::EVENT_BEFORE_INSERT => 'beforeSave',
+            ActiveRecord::EVENT_BEFORE_UPDATE => 'beforeSave',
             ActiveRecord::EVENT_AFTER_INSERT => 'afterSave',
             ActiveRecord::EVENT_AFTER_UPDATE => 'afterSave',
             ActiveRecord::EVENT_AFTER_DELETE => 'afterDelete',
         ];
     }
 
-
-    public function afterSave($event)
+    /**
+     * @param ModelEvent $event
+     */
+    public function beforeSave($event)
     {
-        if(Yii::$app->request instanceof Request){
-            $attributes = Yii::$app->request->post('MetaTag', Yii::$app->request->get('MetaTag', null) );
+        $request = Yii::$app->get('request');
 
-            if($attributes)
-            {
-                $model = $this->getModel();
+        if ($request instanceof Request) {
+            $model = $this->getMetaTagModel();
 
-                if(!isset($model))
-                    $model = new MetaTag();
-
-                $attributes['model_id'] = $this->owner->id;
-                $attributes['model']  = (new \ReflectionClass($this->owner))->getShortName();
-
-                $model->attributes = $attributes;
-                $model->save();
-            }
+            if ($model->load($request->post()))
+                $this->_needToSave = true;
         }
     }
 
+    /**
+     * @param AfterSaveEvent $event
+     */
+    public function afterSave($event)
+    {
+        if ($this->_needToSave) {
+            $model = $this->getMetaTagModel();
+            $model->model_id = $this->_getModelId();
+            $model->model = $this->_getModelName();
 
+            if (! $model->isNewRecord && $model->isEmpty()) {
+                $model->delete();
+            } elseif (! $model->isEmpty()) {
+                $model->save();
+            }
+
+            $this->_needToSave = false;
+        }
+    }
+
+    /**
+     * @param Event $event
+     */
     public function afterDelete($event)
     {
         MetaTag::deleteAll([
-            'model_id' => $this->owner->id,
-            'model'  => (new \ReflectionClass($this->owner))->getShortName()
+            'model_id' => $this->_getModelId(),
+            'model'  => $this->_getModelName(),
         ]);
     }
 
-
-    public function getModel()
+    /**
+     * @return MetaTag|null
+     */
+    public function getMetaTagModel()
     {
-        $model = MetaTag::findOne([
-            'model_id' => $this->owner->id,
-            'model'  => (new \ReflectionClass($this->owner))->getShortName()
-        ]);
+        if (null === $this->_model) {
+            $modelId = $this->_getModelId();
+            $modelName = $this->_getModelName();
 
-        if($model == null)
-            $model = new MetaTag();
+            $this->_model = MetaTag::findOne([
+                'model_id' => $modelId,
+                'model'  => $modelName,
+            ]);
 
-        $this->_model = $model;
+            if (! $this->_model) {
+                $this->_model = new MetaTag();
+                $this->_model->model_id = $this->_getModelId();
+                $this->_model->model = $modelName;
+            }
+        }
 
-        return $model;
+        return $this->_model;
     }
 
-
-    public function getTitle()
+    /**
+     * @return string
+     */
+    public function getMetaTagTitle()
     {
-        $model = $this->_model;
-        if(!isset($model))
-            $model = $this->getModel();
-
-        return isset($model) ? $model->title : '';
+        $model = $this->getMetaTagModel();
+        return $model ? $model->title : '';
     }
 
-    public function getDescription()
+    /**
+     * @return string
+     */
+    public function getMetaTagDescription()
     {
-        $model = $this->_model;
-        if(!isset($model))
-            $model = $this->getModel();
-
-        return isset($model) ? $model->description : '';
+        $model = $this->getMetaTagModel();
+        return $model ? $model->description : '';
     }
 
-    public function getKeywords()
+    /**
+     * @return string
+     */
+    public function getMetaTagKeywords()
     {
-        $model = $this->_model;
-        if(!isset($model))
-            $model = $this->getModel();
-
-        return isset($model) ? $model->keywords : '';
+        $model = $this->getMetaTagModel();
+        return $model ? $model->keywords : '';
     }
+
+    /**
+     * @return mixed
+     */
+    private function _getModelId()
+    {
+        if (is_callable($this->primaryKey))
+            return call_user_func($this->primaryKey, $this->owner, $this);
+
+        return $this->owner->primaryKey;
+    }
+
+    /**
+     * @return string
+     */
+    private function _getModelName()
+    {
+        return $this->modelName ?: (new \ReflectionClass($this->owner))->getShortName();
+    }
+
 }

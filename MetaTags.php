@@ -1,79 +1,84 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: artemshmanovsky
- * Date: 11.03.15
- * Time: 15:03
- */
 
-namespace v0lume\yii2\metaTags;
+namespace ivankff\metaTags;
 
 use Yii;
 use yii\base\Widget;
 use yii\base\Exception;
+use yii\db\ActiveRecord;
+use yii\widgets\ActiveForm;
 
-use v0lume\yii2\metaTags\MetaTagsComponent;
-use v0lume\yii2\metaTags\models\MetaTag;
-
-
+/**
+ */
 class MetaTags extends Widget
 {
+
+    /** @var ActiveRecord */
     public $model;
+    /** @var ActiveForm */
     public $form;
 
-
+    /**
+     * {@inheritDoc}
+     */
     public function init()
     {
         parent::init();
-        self::registerTranslations();
+        static::registerTranslations();
 
-        if (!$this->model->getBehavior(MetaTagsComponent::$behaviorName))
-        {
-            throw new Exception(self::t('messages', 'widget_behavior_exception {behaviorName}', ['behaviorName' => MetaTagsComponent::$behaviorName]), 500);
-        }
+        if (! $this->_getBehavior())
+            throw new Exception(static::t('messages', 'widget_behavior_exception {behaviorName}', ['behaviorName' => MetaTagsComponent::$behaviorName]), 500);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    public function run()
+    {
+        return $this->render('MetaTags', [
+            'model' => $this->_getBehavior()->getMetaTagModel(),
+            'form' => $this->form,
+        ]);
+    }
 
+    /**
+     * @return MetaTagBehavior|null
+     */
+    private function _getBehavior()
+    {
+        foreach ($this->model->behaviors() as $b)
+            if ($b instanceof MetaTagBehavior)
+                return $b;
+
+        return null;
+    }
+
+    /**
+     */
     public static function registerTranslations()
     {
         $i18n = Yii::$app->i18n;
         $i18n->translations['metaTags/*'] = [
             'class' => 'yii\i18n\PhpMessageSource',
             'sourceLanguage' => 'sys',
-            'basePath' => '@vendor/v0lume/yii2-meta-tags/messages',
+            'basePath' => '@vendor/ivankff/yii2-meta-tags/messages',
             'fileMap' => [
                 'metaTags/messages' => 'messages.php',
             ],
         ];
     }
 
-
-    public function run()
-    {
-        $model = new MetaTag;
-
-        if(!$this->model->isNewRecord)
-        {
-            $meta_tag = MetaTag::findOne([
-                'model_id' => $this->model->id,
-                'model'  => (new \ReflectionClass($this->model))->getShortName()
-            ]);
-
-            if(isset($meta_tag))
-                $model = $meta_tag;
-        }
-
-        return $this->render('MetaTags', [
-            'model' => $model,
-            'form' => $this->form,
-        ]);
-    }
-
-
+    /**
+     * @param $category
+     * @param $message
+     * @param array $params
+     * @param null $language
+     * @return string
+     */
     public static function t($category, $message, $params = [], $language = null)
     {
-        self::registerTranslations();
-
+        static::registerTranslations();
         return Yii::t('metaTags/' . $category, $message, $params, $language);
     }
+
 }

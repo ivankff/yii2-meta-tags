@@ -1,14 +1,9 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: artemshmanovsky
- * Date: 12.03.15
- * Time: 20:12
- */
-?>
 
-<?= $form->field($model, 'title')->textInput(['maxlength' => 255]) ?>
+/** @var \yii\web\View $this */
+/** @var \yii\widgets\ActiveForm $form */
+/** @var \ivankff\models\MetaTag $model */
 
-<?= $form->field($model, 'keywords')->textInput(['maxlength' => 255]) ?>
-
-<?= $form->field($model, 'description')->textArea() ?>
+$form->field($model, 'title')->textarea(['rows' => 2]);
+$form->field($model, 'keywords')->textarea(['rows' => 2]);
+$form->field($model, 'description')->textarea(['rows' => 2]);

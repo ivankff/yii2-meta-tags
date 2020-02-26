@@ -17,8 +17,8 @@
  * NOTE: this file must be saved in UTF-8 encoding.
  */
 return [
-    'model_description' => 'Описание',
-    'model_keywords' => 'Ключевые слова',
+    'model_description' => 'Meta description',
+    'model_keywords' => 'Meta keywords',
     'widget_behavior_exception {behaviorName}' => 'Модель должна иметь поведение {behaviorName}',
-    'model_title' => 'Заголовок',
+    'model_title' => 'Meta title',
 ];
